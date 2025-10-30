@@ -1,0 +1,118 @@
+:root{
+    --logo-h: 209px;
+    --bar-h: 30px;
+    --bar-bottom-offset: 62px;
+    --bar-color: #3efcbc;
+    --link-gap: 20px;
+    --link-color: white;
+    --link-hover: #3efcbc;
+    --bg: #0b1220;
+}
+
+html,body {
+    height:100%;
+    margin:0;
+    font-family:Consolas,Monaco,"Courier New",monospace;
+    background-color:var(--bg);
+    color:white;
+}
+
+body {
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+}
+
+main {
+    flex:1;
+    padding:24px 20px;
+}
+
+.site-header {
+    position:relative;
+    display:flex;
+    width:100%;
+    height:217px;
+    align-items: flex-end;
+    overflow: visible;
+}
+
+.site-header::before {
+    content:"";
+    position:absolute;
+    left:0; right:0;
+    height:var(--bar-h);
+    bottom:var(--bar-bottom-offset);
+    background-color:var(--bar-color);
+    z-index:0;
+}
+
+.header-inner {
+    position:relative;
+    display:flex;
+    align-items:flex-end;
+    gap:24px;
+    width:100%;
+    z-index:1;
+}
+
+.logo {
+    height:var(--logo-h);
+    width:auto;
+    z-index:10;
+    margin-left:20px;
+}
+
+.main-nav {
+    margin-bottom: calc(var(--bar-bottom-offset) + var(--bar-h));
+    display:flex;
+    flex-wrap: wrap;
+    gap:var(--link-gap);
+}
+
+.main-nav a {
+    position:relative;
+    text-decoration:none;
+    font-size: 22px;
+    color:var(--link-color);
+    font-weight:500;
+    line-height:1;
+    padding:4px 10px;
+    display: inline-block;
+    border:4px solid var(--bar-color);
+    border-top-left-radius:8px;
+    border-top-right-radius:8px;
+    border-bottom-style:none;
+}
+
+.main-nav a:hover {
+    color:var(--link-hover);
+    background-color:#3efcbc50;
+}
+
+.main-nav a.active {
+    color:#0b1220;
+    background:var(--bar-color);
+}
+
+.main-nav a.active:hover {
+    background-color:#3efcbc50;
+}
+
+.header-link {
+    position:absolute;
+    right: 32px;
+    bottom: 72px;
+    display:block;
+    margin-right:0l
+}
+
+.header-link .discord:hover {
+    transform: scale(1.1);
+}
+
+.discord {
+    height:64px;
+    width:auto;
+    display:block;
+}

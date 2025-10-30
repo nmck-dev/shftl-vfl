@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Access Request</title>
+    <link rel="stylesheet" href="resources/css/splash.css">
+</head>
+
+
+<body>
+    <div class="wrap">
+        <div class="col">
+            <div class="lock">//Access-Restricted</div>
+
+            <div class="prompt-line">
+                <span class="prompt-symbol">:></span>
+                <input id="pwInput" type="password" placeholder="Enter Code" autofocus />
+                <span class="blink"></span>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+(function(){
+
+    // === CONFIG ===
+    const PASSWORD = "shftl";
+    const REDIRECT_URL = "index.html";
+    // ==============
+
+    const input = document.getElementById("pwInput");
+    input.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") {
+            const val = input.value.trim();
+            if (val === PASSWORD) {
+                window.location.href = REDIRECT_URL;
+            } else {
+                input.value = "";
+                input.placeholder = "Incorrect password";
+            }
+        }
+    });
+})();
+</script>
+
+</body>
+
+</html>

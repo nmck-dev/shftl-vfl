@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale-1" />
+    <title>SHFTL Rules</title>
+    <link rel="stylesheet" href="resources/css/header.css">
+    <link rel="stylesheet" href="resources/css/footer.css">
+    <link rel="stylesheet" href="resources/css/rules.css">
+</head>
+
+
+<body>
+ 
+    <div id="site-header"></div>
+    <script src="/SHFTL-VFL/resources/js/header.js"></script>
+
+   <main>
+
+    <div class="rules-container">
+            <div class="accordian" id="accordianRule">
+                <div class="item" aria-expanded="false">
+                    <button class="button-header" aria-controls="panel1" id="h1">
+                        Season Breakdown
+                        <span class="chev">⮞</span>
+                    </button>
+                    <div id="panel1" class="panel" role="region" aria-labelledby="h1">
+                        <div class="panel-inner">
+                            <div class="season">
+                                <div class="periods">
+                                    <p>The 2026 season will be broken down into multiple play periods.  At the beginning of each play period, your squad will be reset and your budget refilled to: 50 VP.</p>
+                                    <ul class="periods">Play Periods:
+                                        <li>Kickoff</li>
+                                        <li>Masters (Santiago)</li>
+                                        <li>Split 1</li>
+                                        <li>Masters (London)</li>
+                                        <li>Split 2</li>
+                                        <li>Champions (Shanghai)</li>
+                                    </ul>
+                                </div>
+                                <div class="description">
+                                    <p>During Kickoff, Split 1, and Split 2 the league will be limited to America's teams and players.</p>
+                                    <p>During the Masters and Champions tournaments, the league will include all participating teams and players.</p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="item" aria-expanded="false">
+                    <button class="button-header" aria-controls="panel2" id="h2">
+                        Create and Manage your Squad
+                        <span class="chev">⮞</span>
+                    </button>
+                    <div id="panel2" class="panel" role="region" aria-labelledby="h2">
+                        <div class="panel-inner">
+                            <p>You will begin each Play Period with an empty roster and a budget of 50 VP to purchase your active roster.  During Split 1 and Split 2 you will have a separate budget of 20 VP to purchase bench players.</p>
+                            <br>
+                            <div class="squad-column">
+                                <ul class="roles">Active Squad Size:
+                                    <li>1 Duelist</li>
+                                    <li>1 Initiator</li>
+                                    <li>1 Controller</li>
+                                    <li>1 Sentinel</li>
+                                    <li>2 Wildcards</li>
+                                </ul><br>
+                                <ul class="roles">Bench Squad Size:
+                                    <li>3 Wildcards</li>
+                                </ul>
+                            </div>
+                            <br>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="item" aria-expanded="false">
+                    <button class="button-header" aria-controls="panel3" id="h3">
+                        Transfers
+                        <span class="chev">⮞</span>
+                    </button>
+                    <div id="panel3" class="panel" role="region" aria-labelledby="h3">
+                        <div class="panel-inner">
+                            <p>After selecting your team, you can buy and sell players in the transfer market.</p>
+                            <p>Unlimited transfers can be made at no cost until the first deadline of each Play Period.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="item" aria-expanded="false">
+                    <button class="button-header" aria-controls="panel4" id="h4">
+                        Deadlines
+                        <span class="chev">⮞</span>
+                    </button>
+                    <div id="panel4" class="panel" role="region" aria-labelledby="h4">
+                        <div class="panel-inner">
+                            <p>All changes to your team (starting squad, transfers, bench changes) must be made by the Game-week deadline in order to take effect.</p>
+                            <hr class="dashed">
+                            <p>Tournament deadlines will be the last day before matches start for each stage. (Swiss stage, Play-offs, Finals Weekend)</p>
+                            <hr class="dashed">
+                            <p>Regular season deadlines will be the last day before matches the weeks games begin.</p>
+                            <br>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="item" aria-expanded="false">
+                    <button class="button-header" aria-controls="panel5" id="h45">
+                        Scoring
+                        <span class="chev">⮞</span>
+                    </button>
+                    <div id="panel5" class="panel" role="region" aria-labelledby="h5">
+                        <div class="panel-inner">
+                            <p class="note">Note: Players will only score their highest 2 scores in each Game-week.  If they happen to play more than 2 matches in a single Game-week, then the lowest score will be dropped.</p>
+                            <br>
+                            <ul class="category">Kills:
+                                <li>-3 points for 0 kills in a map</li>
+                                <li>-1 points for 1-4 kills in a map</li>
+                                <li>+1 point for 10 kills in a map (additional +1 point for every 5 additional kills)</li>
+                            </ul>
+                            <br>
+                            <ul class="category">Multi-Kills:
+                                <li>+1 for a 4k in a round</li>
+                                <li>+3 for a 5k+ in a round</li>
+                            </ul><br>
+                            <ul class="category">Map Wins:
+                                <li>+1 for any map win</li>
+                                <li>+2 bonus for winning Best of 3 in 2 maps</li>
+                                <li>+5 for 13-0 map win</li>
+                                <li>-5 for 0-13 map loss</li>
+                                <li>+2 for winning map by 10+ rounds</li>
+                                <li>-2 for losing map by 10+ rounds</li>
+                                <li>+1 for winning map by 5-9 rounds</li>
+                                <li>-1 for losing map by 5-9 rounds</li>
+                            </ul>
+                            <br>
+                            <ul class="category">Series Win:
+                                <li>+2 for 2-0 series win</li>
+                                <li>+4 for 3-0 series win</li>
+                                <li>+1 for 3-1 series win</li>
+                            </ul>
+                            <br>
+                            <ul class="category">Bonus Points:
+                                <li>+3 for highest average VLR rating across match</li>
+                                <li>+2 for second highest VLR rating across match</li>
+                                <li>+1 for third highest VLR rating across match</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="item" aria-expanded="false">
+                    <button class="button-header" aria-controls="panel6" id="h6">
+                        F.A.Q.
+                        <span class="chev">⮞</span>
+                    </button>
+                    <div id="panel" class="panel" role="region" aria-labelledby="h6">
+                        <div class="panel-inner">
+                            <p class="question">- Do I have to use my entire budget?</p>
+                            <p class="answer">No. You can spend anything under the budget limit and can then use the extra funds later in the transfer market.</p>
+                            <p class="question">- Can I change my squad during a Game-week?</p>
+                            <p class="answer">No, squad changes are locked once a Game-week begins. You can only make changes during the gap between Game-weeks.</p>
+                            <p class="question">- What happens if a player gets benched/subbed?</p>
+                            <p class="answer">Automatic substitutions will happen in the case of injury or non permanent stand-ins. If a player in your squad is permanently removed from your roster: the slot will become empty, the VP you spent on that player will be refunded and 1 transfer credit will be added to your account.</p>
+                            <p class="question">- When do Game Weeks start and end?</p>
+                            <p classp="answer"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                const accordian = document.getElementById('accordianRule');
+                const singleOpen = false;
+
+                accordian.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button.button-header');
+                    if (!btn) return;
+                    const item = btn.closest('.item');
+                    const currentlyOpen = item.getAttribute('aria-expanded') === 'true';
+
+                    if (singleOpen) {
+                        accordian.querySelectorAll('.item[aria-expanded="true"]').forEach(other => {
+                            if (other !== item) toggleItem(other, false);
+                        });
+                    }
+                    toggleItem(item, !currentlyOpen);
+                });
+
+                function toggleItem(item, open) {
+                    const panel = item.querySelector('.panel');
+                    const inner = panel.querySelector('.panel-inner');
+                    if (open) {
+                        panel.style.maxHeight = inner.scrollHeight + 'px';
+                        item.setAttribute('aria-expanded', 'true');
+                    } else {
+                        panel.style.maxHeight = 0;
+                        item.setAttribute('aria-expanded', 'false');
+                    }
+                }
+
+                document.querySelectorAll('.item').forEach(item => {
+                    const panel = item.querySelector('.panel');
+                    const inner = panel.querySelector('.panel-inner');
+                    if (item.getAttribute('aria-expanded') === 'true') {
+                        panel.style.maxHeight = inner.scrollHeight + 'px';
+                    } else {
+                        panel.style.maxHeight = 0;
+                    }
+                });
+
+                window.addEventListener('resize', () => {
+                    document.querySelectorAll('.item[aria-expanded="true"]'),forEach(item => {
+                        const panel = item.querySelector('.panel');
+                        const inner = panel.querySelector('.panel-inner');
+                        panel.style.maxHeight = inner.scrollHeight + 'px';
+                    });
+                });
+            })();
+        </script>
+
+    </main>
+
+    <div id="site-footer"></div>
+    <script src="/SHFTL-VFL/resources/js/footer.js"></script>
+
+</body>
+
+
+</html>

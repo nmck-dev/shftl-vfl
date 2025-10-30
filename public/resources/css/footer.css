@@ -1,0 +1,43 @@
+.site-footer {
+    background:#3efcbc50;
+    text-align:center;
+    border-top:4px solid #3efcbc;
+}
+
+.footer-container {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:48px;
+    padding:10px 20px;
+    max-width:1000px;
+    margin:0 auto;
+}
+
+.riot-link {
+    z-index:10;
+}
+
+.riot {
+    height: 48px;
+    width:auto;
+    display:block;
+}
+
+.footer-text {
+    color:#ccc;
+    z-index:10;
+}
+
+.footer-link {
+    color:#ccc;
+    text-decoration:none;
+
+}
+
+.shftl {
+    height: 48px;
+    width:auto;
+    display:block;
+    z-index:10;
+}

@@ -1,0 +1,149 @@
+html,body {
+    height:100%;
+    margin:0;
+    font-family:Consolas,Monaco,"Courier New",monospace;
+    background-color:#0b1220;
+}
+
+*, *::before, *::after {box-sizing: border-box;}
+
+
+.team-container {
+    width:80%;
+    margin:60px auto;
+}
+.team-container p{
+    font-size:22px;
+    font-weight:600;
+    color:white;
+}
+.team-container p.type {
+    margin-top:40px;
+    text-align:center;
+}
+
+/* Active Squad */
+.squad-container,
+.bench-container {
+    justify-content:center;
+}
+.squad-container {
+    display:grid;
+    grid-template-columns:repeat(4, 260px);
+    grid-template-rows:auto auto;
+    row-gap:20px;
+    column-gap:60px;
+    margin:30px auto 100px;
+}
+.squad-header {
+    grid-column: 1 / -1;
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    color:#ffff;
+    padding:0 30px;
+}
+.squad-header .team-name {
+    margin:0;
+}
+.squad-container .type {
+    grid-column: 1 / -1;
+    justify-self: center;
+    margin: 0;
+    color:white;
+    text-align:center;
+}
+.squad-grid {
+    grid-column: 1 / -1;
+    display:grid;
+    grid-template-columns: repeat(4,260px);
+    grid-auto-rows:320px;
+    gap:60px;
+}
+.squad-grid > div:nth-of-type(5) { grid-column:2;}
+.squad-grid > div:nth-of-type(6) { grid-column:3;}
+
+.manage {
+    padding:10px 24px;
+    background:#3efcbc;
+    border:3px solid white;
+    color:#0b1220;
+    cursor:pointer;
+    border-radius:6px;
+    font-size:16px;
+    font-weight: 700;
+}
+.manage:hover {
+    background:#3efcbc80;
+}
+
+.squad-grid > div,
+.bench {
+    position:relative;
+    width: 260px;
+    height:320px;
+    border:4px solid var(--accent);
+    border-radius:8px;
+    background-color: var(--accent-bg);
+    color:inherit;
+}
+.squad-grid > div::after,
+.bench::after {
+    content:"+";
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    font-size:80px;
+    font-weight:100;
+    color:var(--accent);
+    pointer-events:none;
+}
+.squad-grid > div:hover,
+.bench:hover {
+    box-shadow: 0 0 18px var(--accent), 0 0 4px var(--accent) inset;
+    transform: translateY(-4px);
+    transition: 0.25s ease;
+    cursor: pointer;
+}
+
+
+.bench-container {
+    display:flex;
+    gap:60px;
+}
+
+/*
+.bench-container {
+    display:none;
+}
+.bench-container.show {
+    display:flex;
+
+}
+*/
+
+.duelist {
+    --accent:#f10574;
+    --accent-bg:#f1057450;
+}
+.initiator {
+    --accent:#2cb3f7;
+    --accent-bg:#2cb3f750;
+}
+.controller {
+    --accent:#3efcbc;
+    --accent-bg:#3efcbc50;
+}
+.sentinel {
+    --accent:#a77dff;
+    --accent-bg:#a77dff50;
+}
+.wildcard {
+    --accent:#fddd54;
+    --accent-bg:#fddd5450;
+}
+.bench {
+    --accent:#fd8300;
+    --accent-bg:#fd830050;
+}

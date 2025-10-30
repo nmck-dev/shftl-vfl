@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>SHFTL Players</title>
+    <link rel="stylesheet" href="resources/css/header.css">
+    <link rel="stylesheet" href="resources/css/footer.css">
+    <link rel="stylesheet" href="resources/css/players.css">
+</head>
+
+
+<body>
+    <div id="site-header"></div>
+    <script src="/SHFTL-VFL/resources/js/header.js"></script>
+    <script src="/SHFTL-VFL/resources/js/filter.js"></script>
+
+    <main>
+        <div class="content-container">
+            <div class="filter-container">
+                <form id="player-filters" class="filters" autocomplete="off">
+
+                    <label>
+                        <span>Search by name:</span>
+                        <input type="text" name="q" placeholder="Search players...">
+                    </label>
+
+                    <div class="cost-filter">
+                        <span class="cost-label">Price Range:</span>
+
+                        <div class="cost-row">
+                            <select name="cost_min" id="cost_min">
+                                <option value="">No Min</option>
+                                <option>1 VP</option><option>2 VP</option><option>3 VP</option><option>4 VP</option><option>5 VP</option><option>6 VP</option><option>7 VP</option><option>8 VP</option><option>9 VP</option><option>10 VP</option><option>11 VP</option><option>12 VP</option><option>13 VP</option>
+                            </select>
+
+                            <span class="dash">-</span>
+
+                            <select name="cost_max" id="cost_max">
+                                <option value="">No Max</option>
+                                <option>1 VP</option><option>2 VP</option><option>3 VP</option><option>4 VP</option><option>5 VP</option><option>6 VP</option><option>7 VP</option><option>8 VP</option><option>9 VP</option><option>10 VP</option><option>11 VP</option><option>12 VP</option><option>13 VP</option>
+                            </select>
+
+                        </div>
+                    </div>
+
+                    <label>
+                        <span>Team</span>
+                        <select name="team" id="team">
+                            <option value="">All teams</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>Role</span>
+                        <select name="role" id="role">
+                            <option value="">All roles</option>
+                            <option>Duelist</option><option>Initiator</option><option>Controller</option><option>Sentinel</option>
+                        </select>
+                    </label>
+
+                    <button type="button" id="filters-reset">Reset</button>
+                </form>
+
+            </div>
+            <div class="players-container">
+                <table id="players-table">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Role</th>
+                            <th>Cost</th>
+                            <th>GW Points</th>
+                            <th>Total Points</th>
+                            <th>PPG</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="player-row" data-name="aspas" data-team="LEV" data-role="Duelist" data-cost="11">
+                            <td>aspas</td>
+                            <td>Lev</td>
+                            <td>Duelist</td>
+                            <td>11 VP</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    
+    </main>
+
+    <div id="site-footer"></div>
+    <script src="/SHFTL-VFL/resources/js/footer.js"></script>
+</body>
+
+
+</html>

@@ -1,0 +1,113 @@
+<div class="top-five">
+  <header class="top-row">
+    <div class="top-note">Left-aligned header text</div>
+
+    <div class="top-actions">
+      <div class="dropdown">
+        <button id="ddBtn" class="dd-btn" aria-haspopup="true" aria-expanded="false">View ▾</button>
+        <ul id="ddMenu" class="dd-menu" role="menu" aria-labelledby="ddBtn" hidden>
+          <li role="menuitem"><button data-val="all">Show all</button></li>
+          <li role="menuitem"><button data-val="top">Top 5</button></li>
+          <li role="menuitem"><button data-val="region">By region</button></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+  <div class="teams">
+    <div class="team">Team 1</div>
+    <div class="team">Team 2</div>
+    <div class="team">Team 3</div>
+    <div class="team">Team 4</div>
+    <div class="team">Team 5</div>
+  </div>
+</div>
+
+<style>
+  :root{ --gutter:24px; --header-height:120px; }
+
+  .top-five{ height:100vh; display:flex; flex-direction:column; box-sizing:border-box; padding-bottom:24px; }
+
+  .top-row{ height:var(--header-height); display:flex; align-items:center; justify-content:space-between; padding:0 var(--gutter); box-sizing:border-box; }
+
+  .top-note{ font-size:1.25rem; text-align:left; }
+
+  .top-actions{ display:flex; align-items:center; gap:8px; }
+
+  /* custom dropdown styles */
+  .dd-btn{
+    padding:8px 12px;
+    border:1px solid #bbb;
+    background:#fff;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:1rem;
+  }
+
+  .dd-menu{
+    margin:4px 0 0 0;
+    padding:6px 0;
+    list-style:none;
+    border:1px solid #ddd;
+    box-shadow:0 6px 18px rgba(0,0,0,.08);
+    background:#fff;
+    border-radius:6px;
+    position:absolute;
+    right:var(--gutter);
+    top:calc(var(--header-height) + 6px);
+    min-width:160px;
+  }
+
+  .dd-menu li button{
+    display:block;
+    width:100%;
+    padding:8px 12px;
+    text-align:left;
+    border:0;
+    background:transparent;
+    cursor:pointer;
+  }
+  .dd-menu li button:hover{ background:#f2f2f2; }
+
+  /* keep the teams area aligned with header gutter */
+  .teams{ display:flex; flex-direction:column; flex:1 1 0; gap:8px; padding:0 var(--gutter); box-sizing:border-box; }
+  .team{ flex:1 1 0; display:flex; align-items:center; justify-content:center; border:1px solid #ddd; background:#f8f8f8; box-sizing:border-box; }
+
+  @media (max-width:560px){
+    .top-row{ flex-direction:column; align-items:flex-start; height:auto; gap:12px; padding-top:16px; padding-bottom:16px; }
+    .dd-menu{ position:static; top:auto; right:auto; min-width:unset; box-shadow:none; border:1px solid #eee; width:100%; }
+  }
+</style>
+
+<script>
+  // tiny accessible toggle for the custom dropdown
+  (() => {
+    const btn = document.getElementById('ddBtn');
+    const menu = document.getElementById('ddMenu');
+
+    btn.addEventListener('click', () => {
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!open));
+      if(open){ menu.hidden = true; } else { menu.hidden = false; menu.querySelector('button').focus(); }
+    });
+
+    // hide when clicking outside
+    document.addEventListener('click', (e) => {
+      if(!btn.contains(e.target) && !menu.contains(e.target)){
+        btn.setAttribute('aria-expanded','false');
+        menu.hidden = true;
+      }
+    });
+
+    // handle selection
+    menu.addEventListener('click', (e) => {
+      if(e.target.matches('button[data-val]')){
+        const val = e.target.dataset.val;
+        console.log('selected', val); // replace with your logic
+        btn.textContent = e.target.textContent + ' ▾';
+        btn.setAttribute('aria-expanded','false');
+        menu.hidden = true;
+      }
+    });
+  })();
+</script>

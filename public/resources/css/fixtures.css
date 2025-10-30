@@ -1,0 +1,192 @@
+/* ===========================
+   Fixtures / Matches Page
+   =========================== */
+
+/* Layout container */
+.fixtures-page .content-container {
+  width: 80%;
+  margin: 30px auto;
+  color: #ffffff;
+}
+
+/* ---------------------------
+   Tabs
+--------------------------- */
+.event-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid #334155;
+  margin-bottom: 16px;
+}
+
+.event-tab {
+  appearance: none;
+  background: transparent;
+  color: #fff;
+  border: none;
+  padding: 10px 14px;
+  font-size: 18px;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.event-tab[aria-selected="true"] {
+  border-bottom-color: #3efcbc;
+  color: #3efcbc;
+  font-weight: 600;
+}
+
+.event-tab:hover:not([aria-selected="true"]) {
+  color: #3efcbc80;
+}
+
+.event-tab:focus-visible {
+  outline: 3px solid #3efcbc;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ---------------------------
+   Fixtures Panel
+--------------------------- */
+.fixtures-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: #fff;
+}
+
+/* ---------------------------
+   Game Cards (shared styles)
+--------------------------- */
+.game-card {
+  background: #182746;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.game-card:hover {
+  background: #1d3158;
+  transform: translateY(-2px);
+}
+
+.gc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+  color: #94a3b8;
+}
+
+.gc-time {
+  color: #cbd5e1;
+}
+
+.gc-bo {
+  background: #3efcbc33;
+  color: #3efcbc;
+  font-size: 13px;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.gc-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.gc-body .vs {
+  opacity: 0.7;
+}
+
+.gc-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #cbd5e1;
+}
+
+.gc-stage {
+  color: #a1a1aa;
+}
+
+.gc-stream a {
+  color: #3efcbc;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.gc-stream a:hover {
+  text-decoration: underline;
+}
+
+/* ---------------------------
+   Tournament Layout
+--------------------------- */
+.tournament-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* ---------------------------
+   Split Layout
+--------------------------- */
+.split-week {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.split-week-header {
+  font-size: 18px;
+  font-weight: 600;
+  border-left: 4px solid #3efcbc;
+  padding-left: 8px;
+  color: #cbd5e1;
+  margin-bottom: 4px;
+}
+
+.split-week-rail {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 10px;
+}
+
+.split-week-rail .game-card {
+  min-width: 280px;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+/* ---------------------------
+   Responsive
+--------------------------- */
+@media (max-width: 700px) {
+  .event-tab {
+    font-size: 16px;
+    padding: 8px 10px;
+  }
+
+  .gc-body {
+    font-size: 18px;
+  }
+
+  .split-week-rail .game-card {
+    min-width: 240px;
+  }
+}

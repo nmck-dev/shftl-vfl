@@ -1,0 +1,53 @@
+{
+  "events": [
+    { "id": "americas-kickoff", "name": "Americas Kickoff", "layout": "tournament" },
+    { "id": "masters-1", "name": "Masters 1", "layout": "tournament" },
+    { "id": "masters-2", "name": "Masters 2", "layout": "tournament" },
+    { "id": "champs", "name": "Champions", "layout": "tournament" },
+
+    { "id": "split-1", "name": "Split 1 (Americas)", "layout": "split", "region": "americas" },
+    { "id": "split-2", "name": "Split 2 (Americas)", "layout": "split", "region": "americas" }
+  ],
+  "matches": [
+    {
+      "id": "m101",
+      "eventId": "americas-kickoff",
+      "datetime": "2025-11-02T18:00:00Z",
+      "team1": "G2", "team2": "NRG",
+      "bo": "Bo3", "stage": "Upper QF",
+      "stream": "https://twitch.tv/valorant"
+    },
+    {
+      "id": "m102",
+      "eventId": "masters-1",
+      "datetime": "2025-11-04T15:00:00Z",
+      "team1": "TL", "team2": "FNATIC",
+      "bo": "Bo3", "stage": "Groups Day 1"
+    },
+
+    {
+      "id": "m201",
+      "eventId": "split-1",
+      "week": 1,
+      "datetime": "2025-11-06T20:00:00Z",
+      "team1": "LEV", "team2": "LOUD",
+      "bo": "Bo3", "stage": "Week 1"
+    },
+    {
+      "id": "m202",
+      "eventId": "split-1",
+      "week": 1,
+      "datetime": "2025-11-07T20:00:00Z",
+      "team1": "SEN", "team2": "C9",
+      "bo": "Bo3", "stage": "Week 1"
+    },
+    {
+      "id": "m203",
+      "eventId": "split-1",
+      "week": 2,
+      "datetime": "2025-11-13T20:00:00Z",
+      "team1": "G2", "team2": "EG",
+      "bo": "Bo3", "stage": "Week 2"
+    }
+  ]
+}
