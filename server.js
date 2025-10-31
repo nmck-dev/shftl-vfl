@@ -252,6 +252,34 @@ app.post('/api/users', async (req, res) => {
 });
 
 
+// List all fantasy teams for a specific user
+app.get('/api/users/:userId/fantasy-teams', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const result = await db.query(
+      `SELECT
+         ft.id,
+         ft.name,
+         ft.event_id,
+         ft.created_at,
+         e.name AS event_name
+       FROM fantasy_team ft
+       JOIN event e ON ft.event_id = e.id
+       WHERE ft.user_id = $1
+       ORDER BY e.start_date DESC, ft.created_at DESC`,
+      [userId]
+    );
+
+    res.json({ ok: true, fantasy_teams: result.rows });
+  } catch (err) {
+    console.error('list user fantasy teams error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
+
 // ======================
 // FRONTEND FALLBACK
 // ======================
