@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 
 
 // Temporary Setup route to create tables
-app.post('/api/setup/core-tables', async (req, res) => {
+app.get('/api/setup/core-tables', async (req, res) => { … });
   try {
     // 1. users
     await db.query(`
