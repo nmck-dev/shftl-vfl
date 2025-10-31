@@ -60,7 +60,6 @@ app.post('/api/events', async (req, res) => {
 });
 
 
-
 // update an event (e.g. fix dates later)
 app.put('/api/events/:id', async (req, res) => {
   const { id } = req.params;
@@ -121,9 +120,6 @@ app.put('/api/events/:id', async (req, res) => {
 });
 
 
-
-
-
 // List all events
 app.get('/api/events', async (req, res) => {
   try {
@@ -136,6 +132,58 @@ app.get('/api/events', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+
+// ======================
+// EVENT WEEK ROUTES
+// ======================
+
+// Create an event week for a specific event
+app.post('/api/events/:eventId/weeks', async (req, res) => {
+  const { eventId } = req.params;
+  const { week_number, start_date, end_date } = req.body;
+
+  // basic validation
+  if (!week_number || !start_date || !end_date) {
+    return res.status(400).json({
+      ok: false,
+      error: 'week_number, start_date, and end_date are required'
+    });
+  }
+
+  try {
+    const result = await db.query(
+      `INSERT INTO event_week (event_id, week_number, start_date, end_date)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [eventId, week_number, start_date, end_date]
+    );
+
+    res.status(201).json({ ok: true, week: result.rows[0] });
+  } catch (err) {
+    console.error('Error creating event week:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// List all weeks for a specific event
+app.get('/api/events/:eventId/weeks', async (req, res) => {
+  const { eventId } = req.params;
+
+  try {
+    const result = await db.query(
+      `SELECT * FROM event_week
+       WHERE event_id = $1
+       ORDER BY week_number ASC`,
+      [eventId]
+    );
+
+    res.json({ ok: true, weeks: result.rows });
+  } catch (err) {
+    console.error('Error listing event weeks:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 
 // ======================
 // FRONTEND FALLBACK
