@@ -59,6 +59,71 @@ app.post('/api/events', async (req, res) => {
   }
 });
 
+
+
+// update an event (e.g. fix dates later)
+app.put('/api/events/:id', async (req, res) => {
+  const { id } = req.params;
+  const { slug, name, type, start_date, end_date, is_active } = req.body;
+
+  // Build a dynamic update so you can send only what you want to change
+  const fields = [];
+  const values = [];
+  let idx = 1;
+
+  if (slug !== undefined) {
+    fields.push(`slug = $${idx++}`);
+    values.push(slug);
+  }
+  if (name !== undefined) {
+    fields.push(`name = $${idx++}`);
+    values.push(name);
+  }
+  if (type !== undefined) {
+    fields.push(`type = $${idx++}`);
+    values.push(type);
+  }
+  if (start_date !== undefined) {
+    fields.push(`start_date = $${idx++}`);
+    values.push(start_date);
+  }
+  if (end_date !== undefined) {
+    fields.push(`end_date = $${idx++}`);
+    values.push(end_date);
+  }
+  if (is_active !== undefined) {
+    fields.push(`is_active = $${idx++}`);
+    values.push(is_active);
+  }
+
+  if (fields.length === 0) {
+    return res.status(400).json({ ok: false, error: 'No fields to update.' });
+  }
+
+  try {
+    const result = await db.query(
+      `UPDATE event
+       SET ${fields.join(', ')}
+       WHERE id = $${idx}
+       RETURNING *`,
+      [...values, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Event not found.' });
+    }
+
+    res.json({ ok: true, event: result.rows[0] });
+  } catch (err) {
+    console.error('update event error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
+
+
+
 // List all events
 app.get('/api/events', async (req, res) => {
   try {
