@@ -37,7 +37,6 @@ app.get('/api/health', async (req, res) => {
 app.post('/api/events', async (req, res) => {
   const { slug, name, type = 'TOURNAMENT', start_date, end_date } = req.body;
 
-  // Validate required fields
   if (!slug || !name || !start_date || !end_date) {
     return res.status(400).json({
       ok: false,
@@ -46,18 +45,37 @@ app.post('/api/events', async (req, res) => {
   }
 
   try {
-    const result = await db.query(
+    // 1) create the event
+    const eventResult = await db.query(
       `INSERT INTO event (slug, name, type, start_date, end_date)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
       [slug, name, type, start_date, end_date]
     );
-    res.status(201).json({ ok: true, event: result.rows[0] });
+    const event = eventResult.rows[0];
+
+    // 2) get all users
+    const usersResult = await db.query(`SELECT id, display_name FROM app_user`);
+    const users = usersResult.rows;
+
+    // 3) create fantasy team for each user for this new event
+    for (const user of users) {
+      const teamName = `${user.display_name} - ${event.name}`;
+      await db.query(
+        `INSERT INTO fantasy_team (user_id, event_id, name)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, event_id) DO NOTHING`,
+        [user.id, event.id, teamName]
+      );
+    }
+
+    res.status(201).json({ ok: true, event, auto_users: users.length });
   } catch (err) {
     console.error('Error creating event:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+
 
 
 // update an event (e.g. fix dates later)
@@ -166,28 +184,6 @@ app.post('/api/events/:eventId/weeks', async (req, res) => {
 });
 
 
-// TEMP: create the event_week table if it doesn't exist
-app.get('/api/setup/event-week', async (req, res) => {
-  try {
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS event_week (
-        id          BIGSERIAL PRIMARY KEY,
-        event_id    BIGINT REFERENCES event(id) ON DELETE CASCADE,
-        week_number INT NOT NULL,
-        start_date  DATE NOT NULL,
-        end_date    DATE NOT NULL,
-        UNIQUE (event_id, week_number)
-      );
-    `);
-
-    res.json({ ok: true, message: 'event_week table created (or already existed).' });
-  } catch (err) {
-    console.error('setup event_week error:', err);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-
 
 
 // List all weeks for a specific event
@@ -205,6 +201,52 @@ app.get('/api/events/:eventId/weeks', async (req, res) => {
     res.json({ ok: true, weeks: result.rows });
   } catch (err) {
     console.error('Error listing event weeks:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
+// ======================
+// CREATE USER ROUTES
+// ======================
+
+// Create a user and auto-enroll them in ALL events
+app.post('/api/users', async (req, res) => {
+  const { display_name, email, discord_id } = req.body;
+
+  if (!display_name) {
+    return res.status(400).json({ ok: false, error: 'display_name is required' });
+  }
+
+  try {
+    // 1) create the user
+    const userResult = await db.query(
+      `INSERT INTO app_user (display_name, email, discord_id)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [display_name, email || null, discord_id || null]
+    );
+    const user = userResult.rows[0];
+
+    // 2) get all events
+    const eventsResult = await db.query(`SELECT id, name FROM event`);
+    const events = eventsResult.rows;
+
+    // 3) for each event, create a fantasy_team for this user
+    for (const ev of events) {
+      // make a simple name like "Nick - Test Tournament"
+      const teamName = `${user.display_name} - ${ev.name}`;
+      await db.query(
+        `INSERT INTO fantasy_team (user_id, event_id, name)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, event_id) DO NOTHING`,
+        [user.id, ev.id, teamName]
+      );
+    }
+
+    res.status(201).json({ ok: true, user, auto_events: events.length });
+  } catch (err) {
+    console.error('create user + auto fantasy teams error:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
