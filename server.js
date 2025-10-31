@@ -165,6 +165,31 @@ app.post('/api/events/:eventId/weeks', async (req, res) => {
   }
 });
 
+
+// TEMP: create the event_week table if it doesn't exist
+app.get('/api/setup/event-week', async (req, res) => {
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS event_week (
+        id          BIGSERIAL PRIMARY KEY,
+        event_id    BIGINT REFERENCES event(id) ON DELETE CASCADE,
+        week_number INT NOT NULL,
+        start_date  DATE NOT NULL,
+        end_date    DATE NOT NULL,
+        UNIQUE (event_id, week_number)
+      );
+    `);
+
+    res.json({ ok: true, message: 'event_week table created (or already existed).' });
+  } catch (err) {
+    console.error('setup event_week error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
+
+
 // List all weeks for a specific event
 app.get('/api/events/:eventId/weeks', async (req, res) => {
   const { eventId } = req.params;
