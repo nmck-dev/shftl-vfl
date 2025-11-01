@@ -423,6 +423,56 @@ app.get('/api/users/:userId/fantasy-teams', async (req, res) => {
   }
 });
 
+
+
+// TEMP AREA
+// TEMP: create esports team + player tables, and extend roster slots
+app.get('/api/setup/players', async (req, res) => {
+  try {
+    // 1) teams table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS pro_team (
+        id            BIGSERIAL PRIMARY KEY,
+        name          TEXT NOT NULL,
+        short_name    TEXT,
+        region        TEXT,
+        vlr_team_id   TEXT,
+        active        BOOLEAN DEFAULT TRUE
+      );
+    `);
+
+    // 2) players table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS player (
+        id            BIGSERIAL PRIMARY KEY,
+        handle        TEXT NOT NULL,
+        real_name     TEXT,
+        role          TEXT,    -- 'duelist','initiator','controller','sentinel','flex','wildcard'
+        cost          INT DEFAULT 10,
+        pro_team_id   BIGINT REFERENCES pro_team(id) ON DELETE SET NULL,
+        vlr_player_id TEXT,
+        active        BOOLEAN DEFAULT TRUE
+      );
+    `);
+
+    // 3) make sure fantasy_roster_slot can remember cost at time of pick
+    await db.query(`
+      ALTER TABLE fantasy_roster_slot
+      ADD COLUMN IF NOT EXISTS player_cost INT;
+    `);
+
+    res.json({ ok: true, message: 'pro_team, player, and fantasy_roster_slot.player_cost ready.' });
+  } catch (err) {
+    console.error('setup players error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
+
+
+
+
 // ======================
 // FRONTEND FALLBACK
 // ======================
