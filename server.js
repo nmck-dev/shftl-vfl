@@ -4,15 +4,31 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const session = require('express-session'); // <--- added
 const db = require('./db'); // PostgreSQL connection
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// ======================
+// MIDDLEWARE
+// ======================
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// sessions (for Discord login)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24, // 1 day
+  },
+}));
 
 // ======================
 // BASIC HEALTH CHECKS
@@ -27,6 +43,148 @@ app.get('/api/health', async (req, res) => {
     console.error('DB error in /api/health:', err.message);
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+// ======================
+// DISCORD AUTH HELPERS
+// ======================
+
+// This will be used by /auth/discord/callback
+async function findOrCreateUserFromDiscord(discordUser) {
+  const discordId = discordUser.id;
+  const displayName =
+    discordUser.global_name ||
+    discordUser.username ||
+    'Discord User';
+
+  // 1) see if user already exists
+  const existing = await db.query(
+    `SELECT * FROM app_user WHERE discord_id = $1`,
+    [discordId]
+  );
+
+  let user;
+  if (existing.rows.length > 0) {
+    user = existing.rows[0];
+  } else {
+    // 2) create user
+    const insert = await db.query(
+      `INSERT INTO app_user (display_name, email, discord_id)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [displayName, discordUser.email || null, discordId]
+    );
+    user = insert.rows[0];
+  }
+
+  // 3) auto-enroll user in ALL events (your existing rule)
+  const eventsResult = await db.query(`SELECT id, name FROM event`);
+  const events = eventsResult.rows;
+
+  for (const ev of events) {
+    const teamName = `${user.display_name} - ${ev.name}`;
+    await db.query(
+      `INSERT INTO fantasy_team (user_id, event_id, name)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, event_id) DO NOTHING`,
+      [user.id, ev.id, teamName]
+    );
+  }
+
+  return user;
+}
+
+// ======================
+// DISCORD AUTH ROUTES
+// ======================
+
+// 1) start OAuth (frontend will link to this)
+app.get('/auth/discord', (req, res) => {
+  const clientId = process.env.DISCORD_CLIENT_ID;
+  const redirectUri = encodeURIComponent(process.env.DISCORD_REDIRECT_URI);
+  const scope = encodeURIComponent('identify email');
+
+  const url =
+    `https://discord.com/oauth2/authorize?response_type=code&client_id=${clientId}` +
+    `&scope=${scope}&redirect_uri=${redirectUri}`;
+
+  res.redirect(url);
+});
+
+// 2) Discord sends user back here
+app.get('/auth/discord/callback', async (req, res) => {
+  const code = req.query.code;
+  if (!code) {
+    return res.status(400).send('Missing code from Discord');
+  }
+
+  try {
+    // exchange code for token
+    const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: process.env.DISCORD_CLIENT_ID,
+        client_secret: process.env.DISCORD_CLIENT_SECRET,
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: process.env.DISCORD_REDIRECT_URI,
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const text = await tokenRes.text();
+      console.error('Discord token error:', text);
+      return res.status(500).send('Failed to get Discord token');
+    }
+
+    const tokenData = await tokenRes.json();
+    const accessToken = tokenData.access_token;
+
+    // get Discord user
+    const userRes = await fetch('https://discord.com/api/users/@me', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const discordUser = await userRes.json();
+
+    // create or find in our DB + auto-enroll
+    const user = await findOrCreateUserFromDiscord(discordUser);
+
+    // store in session
+    req.session.userId = user.id;
+
+    // go back to site (home for now)
+    res.redirect('/');
+  } catch (err) {
+    console.error('Discord callback error:', err);
+    res.status(500).send('Auth failed');
+  }
+});
+
+// 3) who am I (used by frontend to know the logged-in user)
+app.get('/api/me', async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) {
+    return res.json({ ok: true, user: null });
+  }
+
+  const userRes = await db.query(
+    `SELECT id, display_name, email, discord_id, created_at
+     FROM app_user
+     WHERE id = $1`,
+    [userId]
+  );
+
+  if (userRes.rows.length === 0) {
+    return res.json({ ok: true, user: null });
+  }
+
+  res.json({ ok: true, user: userRes.rows[0] });
 });
 
 // ======================
@@ -76,14 +234,11 @@ app.post('/api/events', async (req, res) => {
   }
 });
 
-
-
 // update an event (e.g. fix dates later)
 app.put('/api/events/:id', async (req, res) => {
   const { id } = req.params;
   const { slug, name, type, start_date, end_date, is_active } = req.body;
 
-  // Build a dynamic update so you can send only what you want to change
   const fields = [];
   const values = [];
   let idx = 1;
@@ -137,7 +292,6 @@ app.put('/api/events/:id', async (req, res) => {
   }
 });
 
-
 // List all events
 app.get('/api/events', async (req, res) => {
   try {
@@ -160,7 +314,6 @@ app.post('/api/events/:eventId/weeks', async (req, res) => {
   const { eventId } = req.params;
   const { week_number, start_date, end_date } = req.body;
 
-  // basic validation
   if (!week_number || !start_date || !end_date) {
     return res.status(400).json({
       ok: false,
@@ -183,9 +336,6 @@ app.post('/api/events/:eventId/weeks', async (req, res) => {
   }
 });
 
-
-
-
 // List all weeks for a specific event
 app.get('/api/events/:eventId/weeks', async (req, res) => {
   const { eventId } = req.params;
@@ -205,12 +355,11 @@ app.get('/api/events/:eventId/weeks', async (req, res) => {
   }
 });
 
-
 // ======================
-// CREATE USER ROUTES
+// CREATE USER ROUTES (manual/dev)
 // ======================
 
-// Create a user and auto-enroll them in ALL events
+// You can keep this for testing (bypasses Discord)
 app.post('/api/users', async (req, res) => {
   const { display_name, email, discord_id } = req.body;
 
@@ -219,7 +368,6 @@ app.post('/api/users', async (req, res) => {
   }
 
   try {
-    // 1) create the user
     const userResult = await db.query(
       `INSERT INTO app_user (display_name, email, discord_id)
        VALUES ($1, $2, $3)
@@ -228,13 +376,11 @@ app.post('/api/users', async (req, res) => {
     );
     const user = userResult.rows[0];
 
-    // 2) get all events
+    // auto-enroll in all events
     const eventsResult = await db.query(`SELECT id, name FROM event`);
     const events = eventsResult.rows;
 
-    // 3) for each event, create a fantasy_team for this user
     for (const ev of events) {
-      // make a simple name like "Nick - Test Tournament"
       const teamName = `${user.display_name} - ${ev.name}`;
       await db.query(
         `INSERT INTO fantasy_team (user_id, event_id, name)
@@ -250,7 +396,6 @@ app.post('/api/users', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
-
 
 // List all fantasy teams for a specific user
 app.get('/api/users/:userId/fantasy-teams', async (req, res) => {
@@ -277,8 +422,6 @@ app.get('/api/users/:userId/fantasy-teams', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
-
-
 
 // ======================
 // FRONTEND FALLBACK
