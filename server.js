@@ -468,6 +468,29 @@ app.get('/api/setup/players', async (req, res) => {
   }
 });
 
+// TEMP: create fantasy_roster_slot table (base)
+app.get('/api/setup/fantasy-roster-base', async (req, res) => {
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS fantasy_roster_slot (
+        id              BIGSERIAL PRIMARY KEY,
+        fantasy_team_id BIGINT REFERENCES fantasy_team(id) ON DELETE CASCADE,
+        event_week_id   BIGINT REFERENCES event_week(id) ON DELETE CASCADE,
+        player_id       BIGINT, -- will reference player(id) once we add players
+        slot_type       TEXT NOT NULL,   -- 'duelist','initiator','controller','sentinel','wildcard','bench'
+        is_bench        BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at      TIMESTAMPTZ DEFAULT now()
+      );
+    `);
+
+    res.json({ ok: true, message: 'fantasy_roster_slot table created (or already existed).' });
+  } catch (err) {
+    console.error('setup fantasy-roster-base error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
 
 
 
