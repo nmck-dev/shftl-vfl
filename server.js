@@ -559,6 +559,45 @@ app.post('/api/players', async (req, res) => {
 // ======================
 // TEMP AREA
 // ======================
+// TEMP: migrate existing player table to add fantasy fields
+app.get('/api/setup/player-migrate', async (req, res) => {
+  try {
+    // add role
+    await db.query(`
+      ALTER TABLE player
+      ADD COLUMN IF NOT EXISTS role TEXT;
+    `);
+
+    // add cost
+    await db.query(`
+      ALTER TABLE player
+      ADD COLUMN IF NOT EXISTS cost INT DEFAULT 10;
+    `);
+
+    // add pro_team_id
+    await db.query(`
+      ALTER TABLE player
+      ADD COLUMN IF NOT EXISTS pro_team_id BIGINT REFERENCES pro_team(id) ON DELETE SET NULL;
+    `);
+
+    // add vlr_player_id
+    await db.query(`
+      ALTER TABLE player
+      ADD COLUMN IF NOT EXISTS vlr_player_id TEXT;
+    `);
+
+    // add active
+    await db.query(`
+      ALTER TABLE player
+      ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;
+    `);
+
+    res.json({ ok: true, message: 'player table migrated (role, cost, pro_team_id, vlr_player_id, active).' });
+  } catch (err) {
+    console.error('player migrate error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
 
 
