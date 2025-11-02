@@ -424,72 +424,141 @@ app.get('/api/users/:userId/fantasy-teams', async (req, res) => {
 });
 
 
+// list esports teams
+app.get('/api/teams', async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT id, name, short_name, region, active
+       FROM pro_team
+       ORDER BY name ASC`
+    );
+    res.json({ ok: true, teams: result.rows });
+  } catch (err) {
+    console.error('list teams error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
+// create esports team (admin/manual for now)
+app.post('/api/teams', async (req, res) => {
+  const { name, short_name, region, vlr_team_id } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ ok: false, error: 'name is required' });
+  }
+
+  try {
+    const result = await db.query(
+      `INSERT INTO pro_team (name, short_name, region, vlr_team_id)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [name, short_name || null, region || null, vlr_team_id || null]
+    );
+
+    res.status(201).json({ ok: true, team: result.rows[0] });
+  } catch (err) {
+    console.error('create team error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// list players, optionally filtered for the popup
+app.get('/api/players', async (req, res) => {
+  const { role, team_id, max_cost, q } = req.query;
+  const where = [];
+  const params = [];
+  let idx = 1;
+
+  if (role) {
+    where.push(`p.role = $${idx++}`);
+    params.push(role);
+  }
+  if (team_id) {
+    where.push(`p.pro_team_id = $${idx++}`);
+    params.push(team_id);
+  }
+  if (max_cost) {
+    where.push(`p.cost <= $${idx++}`);
+    params.push(Number(max_cost));
+  }
+  if (q) {
+    where.push(`p.handle ILIKE $${idx++}`);
+    params.push(`%${q}%`);
+  }
+
+  const sql = `
+    SELECT
+      p.id,
+      p.handle,
+      p.real_name,
+      p.role,
+      p.cost,
+      p.active,
+      p.pro_team_id,
+      t.name AS team_name,
+      t.short_name AS team_short_name
+    FROM player p
+    LEFT JOIN pro_team t ON p.pro_team_id = t.id
+    ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
+    ORDER BY p.cost DESC, p.handle ASC
+  `;
+
+  try {
+    const result = await db.query(sql, params);
+    res.json({ ok: true, players: result.rows });
+  } catch (err) {
+    console.error('list players error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// create player (manual/admin)
+app.post('/api/players', async (req, res) => {
+  const {
+    handle,
+    real_name,
+    role,
+    cost,
+    pro_team_id,
+    vlr_player_id,
+    active
+  } = req.body;
+
+  if (!handle) {
+    return res.status(400).json({ ok: false, error: 'handle is required' });
+  }
+
+  try {
+    const result = await db.query(
+      `INSERT INTO player
+        (handle, real_name, role, cost, pro_team_id, vlr_player_id, active)
+       VALUES
+        ($1, $2, $3, $4, $5, $6, COALESCE($7, TRUE))
+       RETURNING *`,
+      [
+        handle,
+        real_name || null,
+        role || null,
+        cost !== undefined ? cost : 10,
+        pro_team_id || null,
+        vlr_player_id || null,
+        active
+      ]
+    );
+
+    res.status(201).json({ ok: true, player: result.rows[0] });
+  } catch (err) {
+    console.error('create player error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
+
+
+// ======================
 // TEMP AREA
-// TEMP: create esports team + player tables, and extend roster slots
-app.get('/api/setup/players', async (req, res) => {
-  try {
-    // 1) teams table
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS pro_team (
-        id            BIGSERIAL PRIMARY KEY,
-        name          TEXT NOT NULL,
-        short_name    TEXT,
-        region        TEXT,
-        vlr_team_id   TEXT,
-        active        BOOLEAN DEFAULT TRUE
-      );
-    `);
-
-    // 2) players table
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS player (
-        id            BIGSERIAL PRIMARY KEY,
-        handle        TEXT NOT NULL,
-        real_name     TEXT,
-        role          TEXT,    -- 'duelist','initiator','controller','sentinel','flex','wildcard'
-        cost          INT DEFAULT 10,
-        pro_team_id   BIGINT REFERENCES pro_team(id) ON DELETE SET NULL,
-        vlr_player_id TEXT,
-        active        BOOLEAN DEFAULT TRUE
-      );
-    `);
-
-    // 3) make sure fantasy_roster_slot can remember cost at time of pick
-    await db.query(`
-      ALTER TABLE fantasy_roster_slot
-      ADD COLUMN IF NOT EXISTS player_cost INT;
-    `);
-
-    res.json({ ok: true, message: 'pro_team, player, and fantasy_roster_slot.player_cost ready.' });
-  } catch (err) {
-    console.error('setup players error:', err);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// TEMP: create fantasy_roster_slot table (base)
-app.get('/api/setup/fantasy-roster-base', async (req, res) => {
-  try {
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS fantasy_roster_slot (
-        id              BIGSERIAL PRIMARY KEY,
-        fantasy_team_id BIGINT REFERENCES fantasy_team(id) ON DELETE CASCADE,
-        event_week_id   BIGINT REFERENCES event_week(id) ON DELETE CASCADE,
-        player_id       BIGINT, -- will reference player(id) once we add players
-        slot_type       TEXT NOT NULL,   -- 'duelist','initiator','controller','sentinel','wildcard','bench'
-        is_bench        BOOLEAN NOT NULL DEFAULT FALSE,
-        created_at      TIMESTAMPTZ DEFAULT now()
-      );
-    `);
-
-    res.json({ ok: true, message: 'fantasy_roster_slot table created (or already existed).' });
-  } catch (err) {
-    console.error('setup fantasy-roster-base error:', err);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
+// ======================
 
 
 
