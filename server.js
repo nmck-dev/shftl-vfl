@@ -559,45 +559,41 @@ app.post('/api/players', async (req, res) => {
 // ======================
 // TEMP AREA
 // ======================
-// TEMP: migrate existing player table to add fantasy fields
-app.get('/api/setup/player-migrate', async (req, res) => {
+// TEMP: add separate budgets for active + bench
+app.get('/api/setup/event-budgets-split', async (req, res) => {
   try {
-    // add role
+    // active cap: what starters use
     await db.query(`
-      ALTER TABLE player
-      ADD COLUMN IF NOT EXISTS role TEXT;
+      ALTER TABLE event
+      ADD COLUMN IF NOT EXISTS active_budget_cap INT DEFAULT 50;
     `);
 
-    // add cost
+    // bench cap: only for SPLIT events
     await db.query(`
-      ALTER TABLE player
-      ADD COLUMN IF NOT EXISTS cost INT DEFAULT 10;
+      ALTER TABLE event
+      ADD COLUMN IF NOT EXISTS bench_budget_cap INT DEFAULT 15;
     `);
 
-    // add pro_team_id
+    // if you want: migrate existing rows
     await db.query(`
-      ALTER TABLE player
-      ADD COLUMN IF NOT EXISTS pro_team_id BIGINT REFERENCES pro_team(id) ON DELETE SET NULL;
+      UPDATE event
+      SET active_budget_cap = 50
+      WHERE active_budget_cap IS NULL;
     `);
 
-    // add vlr_player_id
     await db.query(`
-      ALTER TABLE player
-      ADD COLUMN IF NOT EXISTS vlr_player_id TEXT;
+      UPDATE event
+      SET bench_budget_cap = 15
+      WHERE bench_budget_cap IS NULL;
     `);
 
-    // add active
-    await db.query(`
-      ALTER TABLE player
-      ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;
-    `);
-
-    res.json({ ok: true, message: 'player table migrated (role, cost, pro_team_id, vlr_player_id, active).' });
+    res.json({ ok: true, message: 'event table updated with active_budget_cap + bench_budget_cap.' });
   } catch (err) {
-    console.error('player migrate error:', err);
+    console.error('setup event-budgets-split error:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+
 
 
 
