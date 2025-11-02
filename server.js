@@ -6,6 +6,8 @@ const path = require('path');
 const cors = require('cors');
 const session = require('express-session'); // <--- added
 const db = require('./db'); // PostgreSQL connection
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +31,16 @@ app.use(session({
     maxAge: 1000 * 60 * 60 * 24, // 1 day
   },
 }));
+
+// Middleware to protect admin routes
+function requireAdminKey(req, res, next) {
+  const key = req.headers['x-api-key'];
+  if (!key || key !== ADMIN_API_KEY) {
+    return res.status(403).json({ ok: false, error: 'Forbidden: Invalid or missing API key.' });
+  }
+  next();
+}
+
 
 // ======================
 // BASIC HEALTH CHECKS
@@ -736,7 +748,7 @@ app.post('/api/fantasy-teams/:fantasyTeamId/weeks/:eventWeekId/roster', async (r
 // ======================
 
 // ADMIN: clear all rosters for an event (end of event)
-app.post('/api/events/:eventId/reset-rosters', async (req, res) => {
+app.post('/api/events/:eventId/reset-rosters', requireAdminKey, async (req, res) => {
   const { eventId } = req.params;
 
   try {
@@ -771,6 +783,7 @@ app.post('/api/events/:eventId/reset-rosters', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+
 
 
 
