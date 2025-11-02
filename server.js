@@ -555,44 +555,170 @@ app.post('/api/players', async (req, res) => {
 
 
 
+// Save (replace) a roster for a team for a specific week
+app.post('/api/fantasy-teams/:fantasyTeamId/weeks/:eventWeekId/roster', async (req, res) => {
+  const { fantasyTeamId, eventWeekId } = req.params;
+  const { slots } = req.body; 
+  // slots = [{ player_id, slot_type, is_bench }, ...]
+
+  if (!Array.isArray(slots)) {
+    return res.status(400).json({ ok: false, error: 'slots must be an array' });
+  }
+
+  try {
+    // 1) check lock
+    const locked = await db.query(
+      `SELECT 1 FROM week_lock WHERE event_week_id = $1`,
+      [eventWeekId]
+    );
+    if (locked.rowCount > 0) {
+      return res.status(400).json({ ok: false, error: 'Week is locked.' });
+    }
+
+    // 2) get event info
+    const weekRes = await db.query(
+      `SELECT ew.event_id, e.type, e.active_budget_cap, e.bench_budget_cap
+       FROM event_week ew
+       JOIN event e ON ew.event_id = e.id
+       WHERE ew.id = $1`,
+      [eventWeekId]
+    );
+    if (weekRes.rowCount === 0) {
+      return res.status(400).json({ ok: false, error: 'Unknown event week.' });
+    }
+
+    const {
+      event_id,
+      type: eventType,
+      active_budget_cap,
+      bench_budget_cap
+    } = weekRes.rows[0];
+
+    // 3) check slot counts
+    const activeSlots = slots.filter(s => !s.is_bench);
+    const benchSlots = slots.filter(s => s.is_bench);
+
+    if (eventType === 'TOURNAMENT') {
+      if (activeSlots.length !== 6) {
+        return res.status(400).json({ ok: false, error: 'Tournament requires 6 active slots.' });
+      }
+      // tournaments: ignore bench slots completely (or disallow)
+      if (benchSlots.length > 0) {
+        return res.status(400).json({ ok: false, error: 'Tournament does not use bench slots.' });
+      }
+    } else if (eventType === 'SPLIT') {
+      if (activeSlots.length !== 6) {
+        return res.status(400).json({ ok: false, error: 'Split requires 6 active slots.' });
+      }
+      if (benchSlots.length !== 3) {
+        return res.status(400).json({ ok: false, error: 'Split requires 3 bench slots.' });
+      }
+    }
+
+    // 4) load players
+    const playerIds = slots
+      .map(s => s.player_id)
+      .filter(id => id !== null && id !== undefined);
+
+    let playersById = {};
+    if (playerIds.length > 0) {
+      const playerRes = await db.query(
+        `SELECT id, handle, role, cost
+         FROM player
+         WHERE id = ANY($1)`,
+        [playerIds]
+      );
+      playersById = Object.fromEntries(playerRes.rows.map(p => [p.id, p]));
+    }
+
+    // 5) validate roles + compute 2 totals
+    let activeTotal = 0;
+    let benchTotal = 0;
+
+    for (const slot of slots) {
+      if (!slot.player_id) continue;
+      const player = playersById[slot.player_id];
+      if (!player) {
+        return res.status(400).json({ ok: false, error: `Unknown player id ${slot.player_id}` });
+      }
+
+      // role check for ACTIVE non-wildcard
+      if (!slot.is_bench && slot.slot_type !== 'wildcard') {
+        if (player.role !== slot.slot_type) {
+          return res.status(400).json({
+            ok: false,
+            error: `Player ${player.handle} (${player.role}) cannot be placed in ${slot.slot_type}`
+          });
+        }
+      }
+
+      if (slot.is_bench) {
+        benchTotal += player.cost || 0;
+      } else {
+        activeTotal += player.cost || 0;
+      }
+    }
+
+    // 6) enforce budgets
+    // active budget is always enforced
+    if (active_budget_cap && activeTotal > active_budget_cap) {
+      return res.status(400).json({
+        ok: false,
+        error: `Active budget exceeded: ${activeTotal}/${active_budget_cap}`
+      });
+    }
+
+    // bench budget only for SPLIT
+    if (eventType === 'SPLIT' && bench_budget_cap && benchTotal > bench_budget_cap) {
+      return res.status(400).json({
+        ok: false,
+        error: `Bench budget exceeded: ${benchTotal}/${bench_budget_cap}`
+      });
+    }
+
+    // 7) write roster (replace)
+    await db.query(
+      `DELETE FROM fantasy_roster_slot
+       WHERE fantasy_team_id = $1 AND event_week_id = $2`,
+      [fantasyTeamId, eventWeekId]
+    );
+
+    for (const slot of slots) {
+      const player = slot.player_id ? playersById[slot.player_id] : null;
+      const playerCost = player ? player.cost : null;
+
+      await db.query(
+        `INSERT INTO fantasy_roster_slot
+         (fantasy_team_id, event_week_id, player_id, slot_type, is_bench, player_cost)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          fantasyTeamId,
+          eventWeekId,
+          slot.player_id || null,
+          slot.slot_type,
+          slot.is_bench || false,
+          playerCost
+        ]
+      );
+    }
+
+    res.json({
+      ok: true,
+      message: 'Roster saved.',
+      active_total: activeTotal,
+      bench_total: benchTotal
+    });
+  } catch (err) {
+    console.error('save roster error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
 
 // ======================
 // TEMP AREA
 // ======================
-// TEMP: add separate budgets for active + bench
-app.get('/api/setup/event-budgets-split', async (req, res) => {
-  try {
-    // active cap: what starters use
-    await db.query(`
-      ALTER TABLE event
-      ADD COLUMN IF NOT EXISTS active_budget_cap INT DEFAULT 50;
-    `);
-
-    // bench cap: only for SPLIT events
-    await db.query(`
-      ALTER TABLE event
-      ADD COLUMN IF NOT EXISTS bench_budget_cap INT DEFAULT 15;
-    `);
-
-    // if you want: migrate existing rows
-    await db.query(`
-      UPDATE event
-      SET active_budget_cap = 50
-      WHERE active_budget_cap IS NULL;
-    `);
-
-    await db.query(`
-      UPDATE event
-      SET bench_budget_cap = 15
-      WHERE bench_budget_cap IS NULL;
-    `);
-
-    res.json({ ok: true, message: 'event table updated with active_budget_cap + bench_budget_cap.' });
-  } catch (err) {
-    console.error('setup event-budgets-split error:', err);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
 
 
 
