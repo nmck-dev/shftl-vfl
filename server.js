@@ -732,6 +732,49 @@ app.post('/api/fantasy-teams/:fantasyTeamId/weeks/:eventWeekId/roster', async (r
 
 
 // ======================
+// ADMIN ROUTES
+// ======================
+
+// ADMIN: clear all rosters for an event (end of event)
+app.post('/api/events/:eventId/reset-rosters', async (req, res) => {
+  const { eventId } = req.params;
+
+  try {
+    // find all weeks for that event
+    const weeksRes = await db.query(
+      `SELECT id FROM event_week WHERE event_id = $1`,
+      [eventId]
+    );
+    const weekIds = weeksRes.rows.map(r => r.id);
+
+    if (weekIds.length === 0) {
+      return res.json({ ok: true, message: 'No weeks to clear.' });
+    }
+
+    // delete roster slots for those weeks
+    await db.query(
+      `DELETE FROM fantasy_roster_slot
+       WHERE event_week_id = ANY($1)`,
+      [weekIds]
+    );
+
+    // optionally: delete week_lock rows too
+    await db.query(
+      `DELETE FROM week_lock
+       WHERE event_week_id = ANY($1)`,
+      [weekIds]
+    );
+
+    res.json({ ok: true, message: `Cleared rosters for event ${eventId}.` });
+  } catch (err) {
+    console.error('reset rosters error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
+
+// ======================
 // TEMP AREA
 // ======================
 
