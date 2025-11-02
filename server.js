@@ -193,7 +193,15 @@ app.get('/api/me', async (req, res) => {
 
 // Create a new event
 app.post('/api/events', async (req, res) => {
-  const { slug, name, type = 'TOURNAMENT', start_date, end_date } = req.body;
+  const {
+    slug,
+    name,
+    type = 'TOURNAMENT',
+    start_date,
+    end_date,
+    active_budget_cap,
+    bench_budget_cap
+  } = req.body;
 
   if (!slug || !name || !start_date || !end_date) {
     return res.status(400).json({
@@ -202,13 +210,20 @@ app.post('/api/events', async (req, res) => {
     });
   }
 
+  // default budgets based on type
+  const finalActiveCap =
+    active_budget_cap !== undefined ? active_budget_cap : 50;
+  const finalBenchCap =
+    bench_budget_cap !== undefined
+      ? bench_budget_cap
+      : (type === 'SPLIT' ? 25 : 0);
+
   try {
-    // 1) create the event
     const eventResult = await db.query(
-      `INSERT INTO event (slug, name, type, start_date, end_date)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO event (slug, name, type, start_date, end_date, active_budget_cap, bench_budget_cap)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [slug, name, type, start_date, end_date]
+      [slug, name, type, start_date, end_date, finalActiveCap, finalBenchCap]
     );
     const event = eventResult.rows[0];
 
@@ -719,30 +734,6 @@ app.post('/api/fantasy-teams/:fantasyTeamId/weeks/:eventWeekId/roster', async (r
 // ======================
 // TEMP AREA
 // ======================
-// TEMP: set up active / bench budgets (50 / 25)
-app.get('/api/setup/event-budgets-split', async (req, res) => {
-  try {
-    await db.query(`
-      ALTER TABLE event
-      ADD COLUMN IF NOT EXISTS active_budget_cap INT DEFAULT 50;
-    `);
-
-    await db.query(`
-      ALTER TABLE event
-      ADD COLUMN IF NOT EXISTS bench_budget_cap INT DEFAULT 25;
-    `);
-
-    // make sure every existing row has these defaults
-    await db.query(`UPDATE event SET active_budget_cap = 50 WHERE active_budget_cap IS NULL;`);
-    await db.query(`UPDATE event SET bench_budget_cap = 25 WHERE bench_budget_cap IS NULL;`);
-
-    res.json({ ok: true, message: 'Event budgets set: 50 active / 25 bench.' });
-  } catch (err) {
-    console.error('setup event-budgets-split error:', err);
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
 
 
 
