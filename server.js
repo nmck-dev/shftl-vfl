@@ -1024,6 +1024,29 @@ app.post('/api/events/:eventId/reset-rosters', requireAdminKey, async (req, res)
   }
 });
 
+// TEMP: ensure one lock per week
+app.get('/api/setup/week-lock-unique', async (req, res) => {
+  try {
+    await db.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_indexes
+          WHERE schemaname = 'public'
+            AND indexname = 'uniq_week_lock_event_week_id'
+        ) THEN
+          CREATE UNIQUE INDEX uniq_week_lock_event_week_id
+          ON week_lock(event_week_id);
+        END IF;
+      END$$;
+    `);
+    res.json({ ok: true, message: 'Unique index on week_lock(event_week_id) ensured.' });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
 
 
 
