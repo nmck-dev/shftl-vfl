@@ -1201,8 +1201,146 @@ app.post('/api/events/:eventId/unlock-current-week', requireAdminKey, async (req
   }
 });
 
+// ADMIN: create an event with sensible budget defaults
+app.post('/api/admin/events', requireAdminKey, async (req, res) => {
+  const {
+    slug, name, type = 'TOURNAMENT', start_date, end_date,
+    active_budget_cap, bench_budget_cap
+  } = req.body;
 
+  if (!slug || !name || !start_date || !end_date) {
+    return res.status(400).json({ ok: false, error: 'slug, name, start_date, end_date required' });
+  }
 
+  // Defaults: TOURNAMENT => 50 / 0, SPLIT => 50 / 25 (can override via body)
+  const finalActive = (active_budget_cap ?? 50);
+  const finalBench  = (bench_budget_cap  ?? (String(type).toUpperCase().trim() === 'SPLIT' ? 25 : 0));
+
+  try {
+    const eventResult = await db.query(
+      `INSERT INTO event (slug, name, type, start_date, end_date, active_budget_cap, bench_budget_cap)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       RETURNING *`,
+      [slug, name, type, start_date, end_date, finalActive, finalBench]
+    );
+
+    // auto-create fantasy_team entries for *existing* users (keeps “all users in all events” rule)
+    const users = await db.query(`SELECT id, display_name FROM app_user`);
+    for (const u of users.rows) {
+      const teamName = `${u.display_name} - ${eventResult.rows[0].name}`;
+      await db.query(
+        `INSERT INTO fantasy_team (user_id, event_id, name)
+         VALUES ($1,$2,$3)
+         ON CONFLICT (user_id, event_id) DO NOTHING`,
+        [u.id, eventResult.rows[0].id, teamName]
+      );
+    }
+
+    res.status(201).json({ ok: true, event: eventResult.rows[0], auto_users: users.rowCount });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ADMIN: create a single event week
+app.post('/api/admin/events/:eventId/weeks', requireAdminKey, async (req, res) => {
+  const { eventId } = req.params;
+  const { week_number, start_date, end_date } = req.body;
+
+  if (!week_number || !start_date || !end_date) {
+    return res.status(400).json({ ok: false, error: 'week_number, start_date, end_date required' });
+  }
+
+  try {
+    const result = await db.query(
+      `INSERT INTO event_week (event_id, week_number, start_date, end_date)
+       VALUES ($1,$2,$3,$4)
+       RETURNING *`,
+      [eventId, week_number, start_date, end_date]
+    );
+    res.status(201).json({ ok: true, week: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ADMIN: advance an event to its next week (lock current, unlock next)
+app.post('/api/admin/events/:eventId/advance-week', requireAdminKey, async (req, res) => {
+  const { eventId } = req.params;
+
+  try {
+    const weeksRes = await db.query(
+      `SELECT id, week_number, start_date, end_date
+       FROM event_week
+       WHERE event_id = $1
+       ORDER BY start_date ASC`, [eventId]
+    );
+    if (weeksRes.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: 'No weeks for this event.' });
+    }
+
+    const weeks = weeksRes.rows;
+    const now = new Date();
+
+    // pick current (covering now) OR next upcoming OR last
+    let cur = weeks.find(w => now >= new Date(w.start_date) && now <= new Date(w.end_date))
+           || weeks.find(w => new Date(w.start_date) > now)
+           || weeks[weeks.length - 1];
+
+    // lock current
+    await db.query(
+      `INSERT INTO week_lock (event_week_id)
+       SELECT $1 WHERE NOT EXISTS (SELECT 1 FROM week_lock WHERE event_week_id = $1)`,
+      [cur.id]
+    );
+
+    // find next by order
+    const curIdx = weeks.findIndex(w => w.id === cur.id);
+    const next = (curIdx >= 0 && curIdx + 1 < weeks.length) ? weeks[curIdx + 1] : null;
+
+    if (next) {
+      // ensure next is unlocked (so managers can pick)
+      await db.query(`DELETE FROM week_lock WHERE event_week_id = $1`, [next.id]);
+    }
+
+    res.json({
+      ok: true,
+      message: next
+        ? `Advanced event ${eventId}: locked week ${cur.week_number}, unlocked week ${next.week_number}.`
+        : `Locked final week ${cur.week_number}; no next week.`
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ADMIN: update event budgets (active / bench)
+app.put('/api/admin/events/:eventId/budgets', requireAdminKey, async (req, res) => {
+  const { eventId } = req.params;
+  const { active_budget_cap, bench_budget_cap } = req.body;
+
+  if (active_budget_cap == null && bench_budget_cap == null) {
+    return res.status(400).json({ ok: false, error: 'Provide active_budget_cap and/or bench_budget_cap' });
+  }
+
+  const sets = [];
+  const vals = [];
+  let i = 1;
+
+  if (active_budget_cap != null) { sets.push(`active_budget_cap = $${i++}`); vals.push(active_budget_cap); }
+  if (bench_budget_cap  != null) { sets.push(`bench_budget_cap  = $${i++}`); vals.push(bench_budget_cap); }
+
+  try {
+    const result = await db.query(
+      `UPDATE event SET ${sets.join(', ')} WHERE id = $${i} RETURNING *`,
+      [...vals, eventId]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ ok: false, error: 'Event not found' });
+    res.json({ ok: true, event: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
 
 
