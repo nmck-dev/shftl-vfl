@@ -445,6 +445,71 @@ app.get('/api/events/:eventId/current-week', async (req, res) => {
   }
 });
 
+// PUBLIC: get lock/status info for a specific week
+app.get('/api/weeks/:eventWeekId/status', async (req, res) => {
+  const { eventWeekId } = req.params;
+
+  try {
+    // fetch week + event info
+    const weekRes = await db.query(
+      `SELECT ew.id,
+              ew.event_id,
+              ew.week_number,
+              ew.start_date,
+              ew.end_date,
+              e.name       AS event_name,
+              e.type       AS event_type
+       FROM event_week ew
+       JOIN event e ON e.id = ew.event_id
+       WHERE ew.id = $1`,
+      [eventWeekId]
+    );
+
+    if (weekRes.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: 'Week not found.' });
+    }
+
+    const week = weekRes.rows[0];
+
+    // check lock
+    const lockRes = await db.query(
+      `SELECT 1 FROM week_lock WHERE event_week_id = $1`,
+      [eventWeekId]
+    );
+    const is_locked = lockRes.rowCount > 0;
+
+    // compute “is_current” and “is_upcoming” for convenience
+    const now = new Date();
+    const start = new Date(week.start_date);
+    const end   = new Date(week.end_date);
+
+    const is_current  = now >= start && now <= end;
+    const is_upcoming = now < start;
+    const is_past     = now > end;
+
+    res.json({
+      ok: true,
+      week: {
+        id: week.id,
+        event_id: week.event_id,
+        event_name: week.event_name,
+        event_type: week.event_type,
+        week_number: week.week_number,
+        start_date: week.start_date,
+        end_date: week.end_date,
+        is_locked,
+        is_current,
+        is_upcoming,
+        is_past
+      }
+    });
+  } catch (err) {
+    console.error('week status error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
 
 // ======================
 // CREATE USER ROUTES (manual/dev)
