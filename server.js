@@ -1024,23 +1024,68 @@ app.post('/api/events/:eventId/reset-rosters', requireAdminKey, async (req, res)
   }
 });
 
-// TEMP: ensure one lock per week
-app.get('/api/setup/week-lock-unique', async (req, res) => {
+// ADMIN: lock a specific week (no roster edits allowed)
+app.post('/api/weeks/:eventWeekId/lock', requireAdminKey, async (req, res) => {
+  const { eventWeekId } = req.params;
   try {
-    await db.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_indexes
-          WHERE schemaname = 'public'
-            AND indexname = 'uniq_week_lock_event_week_id'
-        ) THEN
-          CREATE UNIQUE INDEX uniq_week_lock_event_week_id
-          ON week_lock(event_week_id);
-        END IF;
-      END$$;
-    `);
-    res.json({ ok: true, message: 'Unique index on week_lock(event_week_id) ensured.' });
+    // insert if not exists (unique index prevents dupes)
+    await db.query(
+      `INSERT INTO week_lock (event_week_id)
+       SELECT $1
+       WHERE NOT EXISTS (
+         SELECT 1 FROM week_lock WHERE event_week_id = $1
+       )`,
+      [eventWeekId]
+    );
+    res.json({ ok: true, message: `Week ${eventWeekId} locked.` });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ADMIN: unlock a specific week (allow roster edits again)
+app.post('/api/weeks/:eventWeekId/unlock', requireAdminKey, async (req, res) => {
+  const { eventWeekId } = req.params;
+  try {
+    const result = await db.query(
+      `DELETE FROM week_lock WHERE event_week_id = $1`,
+      [eventWeekId]
+    );
+    const changed = result.rowCount > 0;
+    res.json({ ok: true, message: changed ? `Week ${eventWeekId} unlocked.` : `Week ${eventWeekId} was not locked.` });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// (Convenience) ADMIN: lock the current week for an event
+app.post('/api/events/:eventId/lock-current-week', requireAdminKey, async (req, res) => {
+  const { eventId } = req.params;
+  try {
+    // reuse current-week logic in a single query block
+    const weeksRes = await db.query(
+      `SELECT id, start_date, end_date
+       FROM event_week
+       WHERE event_id = $1
+       ORDER BY start_date ASC`,
+      [eventId]
+    );
+    if (weeksRes.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: 'No weeks found for this event.' });
+    }
+    const now = new Date();
+    let cur = weeksRes.rows.find(w => now >= new Date(w.start_date) && now <= new Date(w.end_date))
+           || weeksRes.rows.find(w => new Date(w.start_date) > now)
+           || weeksRes.rows[weeksRes.rows.length - 1];
+
+    await db.query(
+      `INSERT INTO week_lock (event_week_id)
+       SELECT $1
+       WHERE NOT EXISTS (SELECT 1 FROM week_lock WHERE event_week_id = $1)`,
+      [cur.id]
+    );
+
+    res.json({ ok: true, message: `Locked event ${eventId} week ${cur.id}.` });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
