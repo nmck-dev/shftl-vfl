@@ -1091,6 +1091,52 @@ app.post('/api/events/:eventId/lock-current-week', requireAdminKey, async (req, 
   }
 });
 
+// ADMIN: unlock the current week for an event
+app.post('/api/events/:eventId/unlock-current-week', requireAdminKey, async (req, res) => {
+  const { eventId } = req.params;
+
+  try {
+    // find the "current" week just like the lock-current-week route
+    const weeksRes = await db.query(
+      `SELECT id, start_date, end_date
+       FROM event_week
+       WHERE event_id = $1
+       ORDER BY start_date ASC`,
+      [eventId]
+    );
+
+    if (weeksRes.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: 'No weeks found for this event.' });
+    }
+
+    const now = new Date();
+    let cur =
+      weeksRes.rows.find(
+        w => now >= new Date(w.start_date) && now <= new Date(w.end_date)
+      ) ||
+      weeksRes.rows.find(w => new Date(w.start_date) > now) ||
+      weeksRes.rows[weeksRes.rows.length - 1];
+
+    // delete the lock if it exists
+    const result = await db.query(
+      `DELETE FROM week_lock WHERE event_week_id = $1`,
+      [cur.id]
+    );
+
+    const changed = result.rowCount > 0;
+    res.json({
+      ok: true,
+      message: changed
+        ? `Unlocked event ${eventId} week ${cur.id}.`
+        : `Week ${cur.id} was not locked.`
+    });
+  } catch (err) {
+    console.error('unlock current week error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
 
 
 
