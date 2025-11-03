@@ -790,6 +790,22 @@ app.post('/api/events/:eventId/reset-rosters', requireAdminKey, async (req, res)
 // ======================
 // TEMP AREA
 // ======================
+// TEMP: create week_lock table (for roster locks)
+app.get('/api/setup/week-lock', async (req, res) => {
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS week_lock (
+        id BIGSERIAL PRIMARY KEY,
+        event_week_id BIGINT NOT NULL REFERENCES event_week(id) ON DELETE CASCADE,
+        locked_at TIMESTAMPTZ DEFAULT now()
+      );
+    `);
+    res.json({ ok: true, message: 'week_lock table ready.' });
+  } catch (err) {
+    console.error('week-lock setup error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
 
 
