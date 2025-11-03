@@ -382,6 +382,70 @@ app.get('/api/events/:eventId/weeks', async (req, res) => {
   }
 });
 
+// Get the "current" week for an event
+app.get('/api/events/:eventId/current-week', async (req, res) => {
+  const { eventId } = req.params;
+
+  try {
+    // get all weeks for this event
+    const weeksRes = await db.query(
+      `SELECT id, event_id, week_number, start_date, end_date
+       FROM event_week
+       WHERE event_id = $1
+       ORDER BY start_date ASC`,
+      [eventId]
+    );
+
+    const weeks = weeksRes.rows;
+    if (weeks.length === 0) {
+      return res.status(404).json({ ok: false, error: 'No weeks found for this event.' });
+    }
+
+    // Render runs UTC; this is fine for us
+    const now = new Date();
+
+    // 1) try to find a week that contains "now"
+    let current = weeks.find(w => {
+      const start = new Date(w.start_date);
+      const end = new Date(w.end_date);
+      return now >= start && now <= end;
+    });
+
+    // 2) if none active yet, pick the next future week
+    if (!current) {
+      current = weeks.find(w => new Date(w.start_date) > now);
+    }
+
+    // 3) if still nothing (we’re past all weeks), pick the last one
+    if (!current) {
+      current = weeks[weeks.length - 1];
+    }
+
+    // check if this week is locked
+    const lockRes = await db.query(
+      `SELECT 1 FROM week_lock WHERE event_week_id = $1`,
+      [current.id]
+    );
+    const is_locked = lockRes.rowCount > 0;
+
+    res.json({
+      ok: true,
+      event_id: Number(eventId),
+      week: {
+        id: current.id,
+        week_number: current.week_number,
+        start_date: current.start_date,
+        end_date: current.end_date,
+        is_locked
+      }
+    });
+  } catch (err) {
+    console.error('get current week error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+
 // ======================
 // CREATE USER ROUTES (manual/dev)
 // ======================
