@@ -147,3 +147,130 @@ html,body {
     --accent:#fd8300;
     --accent-bg:#fd830050;
 }
+
+
+.overlay {
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.7);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+}
+
+/* Hidden state */
+.overlay.hidden {
+    display:none;
+}
+
+/* The modal panel */
+.overlay-content {
+    background:#121820;
+    border:2px solid #3efcbc;
+    border-radius:12px;
+    width:1300px;
+    max-width:90%;
+    max-height:80%;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    color:white;
+    box-shadow:0 0 20px #00ffcc50;
+}
+
+/* Header */
+.overlay-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 16px;
+    background:#1a2230;
+    border-bottom:1px solid #3efcbc;
+}
+.overlay-header h2 {
+    margin:0;
+    font-size:18px;
+}
+.overlay-header button {
+    background:none;
+    border:none;
+    color:#fff;
+    font-size:20px;
+    cursor:pointer;
+}
+
+/* Scrollable player list */
+.player-list { padding: 0; overflow-y: auto; display: block; }
+
+.player-list-header,
+.player-row {
+  display: grid;
+  /* Img | IGN | Role | Team | Cost | Avg FP/G */
+  grid-template-columns: 48px 1fr 1fr 1fr 80px 100px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+.player-list-header {
+  position: sticky; top: 0;
+  background: #0f1622;
+  border-bottom: 1px solid #2a3342;
+  z-index: 1;
+  font-size: 12px; color: #9fb0c5; text-transform: uppercase; letter-spacing: .04em;
+}
+
+/* rows */
+.player-row {
+  background: #1a2230; border-bottom: 1px solid #202733;
+  cursor: pointer; transition: background .15s ease, transform .08s ease;
+}
+.player-row:hover { background: #223049; }
+.player-row:active { transform: scale(0.998); }
+
+.player-img {
+  width: 40px; height: 40px; border-radius: 8px; object-fit: cover;
+  background: #0a0f15; border: 1px solid #2a3342;
+}
+
+/* column alignment */
+.col-ign   { text-align: left; }
+.col-role  { text-align: left; color: #d7e3f4; }      /* plain text now */
+.col-team  { text-align: left; color: #c9d6e6; }
+.col-cost  { text-align: right; justify-self: end; font-variant-numeric: tabular-nums; color:#8fdcff; }
+.col-avg   { text-align: right; justify-self: end; font-variant-numeric: tabular-nums; color:#33d69f; }
+
+/* small screens: hide team column */
+@media (max-width: 560px) {
+  .player-list-header, .player-row {
+    grid-template-columns: 48px 1fr 110px 90px 110px; /* Img | IGN | Role | Cost | Avg */
+  }
+  .col-team, .hdr-team { display: none; }
+}
+
+/* Ensure identical column grid for header & rows */
+.player-list-header,
+.player-row {
+  grid-template-columns: 48px 1fr 1fr 1fr 90px 110px;
+}
+
+/* Right-align numeric headers to match numeric cells */
+.hdr-cost, .hdr-avg {
+  text-align: right;
+  justify-self: end;
+  letter-spacing: normal;            /* don't expand numbers */
+  font-variant-numeric: tabular-nums;/* same numeral metrics as rows */
+}
+
+/* Keep numeric cells right-aligned & tabular */
+.col-cost, .col-avg {
+  text-align: right;
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Optional: tighten header spacing so borders line up visually */
+.player-list-header {
+  padding-right: 14px; /* matches row padding so right edges align */
+}

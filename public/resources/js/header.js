@@ -1,4 +1,4 @@
-fetch('/SHFTL-VFL/partials/header.html')
+fetch('/public/partials/header.html')
   .then(res => res.text())
   .then(html => {
     document.getElementById('site-header').innerHTML = html;
